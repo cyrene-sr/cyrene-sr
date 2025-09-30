@@ -1,0 +1,5 @@
+.direnv
+
+# Binaries
+/dispatch
+/gameserver
