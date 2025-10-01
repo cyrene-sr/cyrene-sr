@@ -24,6 +24,37 @@ PlayerHeartBeatScRsp.client_time_ms equ 1
 PlayerHeartBeatScRsp.server_time_ms equ 13
 PlayerHeartBeatScRsp.download_data equ 14
 
+; GetBagScRsp
+GetBagScRsp.equipment_list         equ 14
+GetBagScRsp.GNALANJPEGO            equ 15
+GetBagScRsp.PHNGMELJKBE            equ 9
+GetBagScRsp.retcode                equ 2
+GetBagScRsp.wait_del_resource_list equ 1
+GetBagScRsp.material_list          equ 10
+GetBagScRsp.IFENMDPBNKG            equ 5
+GetBagScRsp.AEPNIDPONKC            equ 7
+GetBagScRsp.AOIIHCFMFPH            equ 13
+GetBagScRsp.KMJEFMFBLLI            equ 11
+GetBagScRsp.GEMCACJLPIJ            equ 8
+GetBagScRsp.BAFEBHDOBFJ            equ 12
+GetBagScRsp.FDBJLGDHCDO            equ 4
+GetBagScRsp.relic_list             equ 3
+GetBagScRsp.FCOKFFEAPMI            equ 6
+
+; Material
+Material.num         equ 14
+Material.tid         equ 5
+Material.expire_time equ 10
+
+; SetPlayerOutfitCsReq
+SetPlayerOutfitCsReq.ENFKEIBDLLF  equ 1
+
+; SetPlayerOutfitScRsp
+SetPlayerOutfitScRsp.retcode      equ 8
+
+; PlayerSyncScNotify
+PlayerSyncScNotify.ENFKEIBDLLF    equ 1588
+
 ; Avatar
 Avatar.base_avatar_id equ 1
 Avatar.level equ 10

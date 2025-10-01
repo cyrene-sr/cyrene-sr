@@ -159,6 +159,10 @@ start:
   je .handle_get_mission_status
   cmp rax, CmdGetAvatarDataCsReq
   je .handle_get_avatar_data
+  cmp rax, CmdGetBagCsReq
+  je .handle_get_bag_data
+  cmp rax, CmdSetPlayerOutfitCsReq
+  je .handle_set_player_outfit
   cmp rax, CmdGetCurLineupDataCsReq
   je .handle_get_cur_lineup_data
   cmp rax, CmdGetCurSceneInfoCsReq
@@ -312,11 +316,117 @@ start:
   mov r15, rsi ; current rsp buffer pos
   add rsp, 128 ; deallocate 128 bytes of 'Avatar' buffer
 
+   sub rsp, 128
+  mov rsi, rsp
+  pb_write_varint rsi, Avatar.base_avatar_id, 8001
+  pb_write_varint rsi, Avatar.level, 80
+  pb_write_varint rsi, Avatar.promotion, 6
+  pb_write_varint rsi, Avatar.rank, 6
+  mov r14, rsi
+  sub r14, rsp
+  mov r12, rsp
+  mov rsi, r15
+  pb_write_bytes rsi, GetAvatarDataScRsp.avatar_list, r12, r14
+  mov r15, rsi
+  add rsp, 128
+
   pop r14 ; rsp buffer beginning
   sub r15, r14 ; cur - begin
   mov r8, r15 ; r8 = body_len
   mov r9, CmdGetAvatarDataScRsp
   jmp .send_rsp
+
+.handle_get_bag_data:
+  ; GetBagScRsp
+  mov r13, [send_buffer_ptr]
+  add r13, PACKET_BODY_SIZE_OFFSET+4 
+  mov rsi, r13
+  push r13
+  
+  mov r15, rsi
+
+  sub rsp, 64 
+  mov rsi, rsp
+  pb_write_varint rsi, Material.tid, 227001
+  pb_write_varint rsi, Material.num, 1
+  mov r14, rsi
+  sub r14, rsp 
+  mov r12, rsp
+  mov rsi, r15 
+  pb_write_bytes rsi, GetBagScRsp.material_list, r12, r14
+  mov r15, rsi 
+  add rsp, 64 
+
+  sub rsp, 64
+  mov rsi, rsp
+  pb_write_varint rsi, Material.tid, 227002
+  pb_write_varint rsi, Material.num, 1
+  mov r14, rsi
+  sub r14, rsp
+  mov r12, rsp
+  mov rsi, r15
+  pb_write_bytes rsi, GetBagScRsp.material_list, r12, r14
+  mov r15, rsi
+  add rsp, 64
+
+  pop r14 
+  sub r15, r14
+  mov r8, r15 
+  mov r9, CmdGetBagScRsp
+  jmp .send_rsp
+
+.handle_set_player_outfit:
+  ; SetPlayerOutfitScRsp
+  mov rdi, [recv_buffer_ptr]
+  add rdi, PACKET_HEAD_SIZE_OFFSET
+  xor rax, rax
+  mov ax, [rdi]
+  bswap eax
+  shr eax, 16            
+
+  add rdi, PACKET_BODY_SIZE_OFFSET - PACKET_HEAD_SIZE_OFFSET
+  mov esi, [rdi]
+  bswap esi               
+
+  add rdi, 4
+  add rdi, rax             
+  mov r12, rsi
+  add r12, rdi             
+
+  mov rsi, rdi
+  call decode_varint
+  mov rdi, rsi
+  cmp rax, ((SetPlayerOutfitCsReq.ENFKEIBDLLF shl 3) or WIRE_LEN)
+  jne .send_outfit
+
+  call decode_varint
+  mov rcx, rax            
+  mov rbx, rsi             
+  add rsi, rcx
+  mov rdi, rsi
+.send_outfit:
+  mov r13, [send_buffer_ptr]
+  add r13, PACKET_BODY_SIZE_OFFSET+4
+  mov rsi, r13
+
+  pb_write_bytes rsi, PlayerSyncScNotify.ENFKEIBDLLF, rbx, rcx
+  mov r15, rsi
+  sub r15, r13
+  mov r8, r15
+  mov r9, CmdPlayerSyncScNotify
+  jmp .send_rsp
+  
+  mov r13, [send_buffer_ptr]
+  add r13, PACKET_BODY_SIZE_OFFSET+4
+  mov rsi, r13
+
+  pb_write_varint rsi, SetPlayerOutfitScRsp.retcode, 0
+  mov r15, rsi
+  sub r15, r13
+  mov r8, r15
+  mov r9, CmdSetPlayerOutfitScRsp
+  jmp .send_rsp
+
 .handle_get_cur_lineup_data:
   ; GetCurLineupDataScRsp
 
