@@ -302,33 +302,28 @@ start:
   pb_write_varint rsi, GetAvatarDataScRsp.is_get_all, 1
   mov r15, rsi ; save current rsp buffer pos
 
-  sub rsp, 128 ; allocate 128 bytes for 'Avatar'
-  mov rsi, rsp
-  pb_write_varint rsi, Avatar.base_avatar_id, 1415
-  pb_write_varint rsi, Avatar.level, 80
-  pb_write_varint rsi, Avatar.promotion, 6
-  pb_write_varint rsi, Avatar.rank, 6
-  mov r14, rsi
-  sub r14, rsp ; rsp has beginning of the buffer. R14 = cur - begin = length
-  mov r12, rsp
-  mov rsi, r15 ; rsi now has rsp buffer pos
-  pb_write_bytes rsi, GetAvatarDataScRsp.avatar_list, r12, r14
-  mov r15, rsi ; current rsp buffer pos
-  add rsp, 128 ; deallocate 128 bytes of 'Avatar' buffer
+  macro pb_encode_avatar_data id, level, promotion, rank {
+    sub rsp, 128 ; allocate 128 bytes for 'Avatar'
+    mov rsi, rsp
+    pb_write_varint rsi, Avatar.base_avatar_id, id
+    pb_write_varint rsi, Avatar.level, level
+    pb_write_varint rsi, Avatar.promotion, promotion
+    pb_write_varint rsi, Avatar.rank, rank
+    mov r14, rsi
+    sub r14, rsp ; rsp has beginning of the buffer. R14 = cur - begin = length
+    mov r12, rsp
+    mov rsi, r15 ; rsi now has rsp buffer pos
+    pb_write_bytes rsi, GetAvatarDataScRsp.avatar_list, r12, r14
+    mov r15, rsi ; current rsp buffer pos
+    add rsp, 128 ; deallocate 128 bytes of 'Avatar' buffer
+  }
 
-   sub rsp, 128
-  mov rsi, rsp
-  pb_write_varint rsi, Avatar.base_avatar_id, 8001
-  pb_write_varint rsi, Avatar.level, 80
-  pb_write_varint rsi, Avatar.promotion, 6
-  pb_write_varint rsi, Avatar.rank, 6
-  mov r14, rsi
-  sub r14, rsp
-  mov r12, rsp
-  mov rsi, r15
-  pb_write_bytes rsi, GetAvatarDataScRsp.avatar_list, r12, r14
-  mov r15, rsi
-  add rsp, 128
+  macro pb_encode_avatar_data_list [avatar_id] {
+  forward
+    pb_encode_avatar_data avatar_id, 80, 6, 6
+  }
+
+  pb_encode_avatar_data_list 1415, 1401, 1003, 1005, 8001
 
   pop r14 ; rsp buffer beginning
   sub r15, r14 ; cur - begin
@@ -574,37 +569,45 @@ start:
   mov r10, rsi
   sub r10, rsp ; SceneMonsterWave buffer length
 
-  sub rsp, 32 ; SpBarInfo
-  mov rsi, rsp
-  pb_write_varint rsi, SpBarInfo.sp_cur, 10000
-  pb_write_varint rsi, SpBarInfo.sp_need, 10000
-  mov r8, rsi
-  sub r8, rsp ; SpBarInfo buffer length
-
-  sub rsp, 64 ; BattleAvatar
-  mov rsi, rsp
-  pb_write_varint rsi, BattleAvatar.id, 1415
-  pb_write_varint rsi, BattleAvatar.level, 80
-  pb_write_varint rsi, BattleAvatar.rank, 6
-  pb_write_varint rsi, BattleAvatar.promotion, 6
-  pb_write_varint rsi, BattleAvatar.hp, 10000
-  pb_write_varint rsi, BattleAvatar.avatar_type, AVATAR_FORMAL_TYPE
-  mov r9, rsp
-  add r9, 64 ; SpBarInfo
-  pb_write_bytes rsi, BattleAvatar.sp_bar, r9, r8
-  mov r8, rsi
-  sub r8, rsp ; BattleAvatar buffer length
-
   sub rsp, 128 ; SceneBattleInfo
   mov rsi, rsp
   mov r9, rsp
-  add r9, (128+64+32) ; SceneMonsterWave
+  add r9, 128 ; SceneMonsterWave
   pb_write_bytes rsi, SceneBattleInfo.monster_wave_list, r9, r10
-  mov r9, rsp
-  add r9, 128 ; BattleAvatar
-repeat 4
-  pb_write_bytes rsi, SceneBattleInfo.battle_avatar_list, r9, r8
-end repeat
+  mov r11, rsi ; SceneBattleInfo position
+
+  macro encode_battle_avatar id, level, rank, promotion, hp, sp_cur, sp_need, avatar_type {
+    sub rsp, 32 ; SpBarInfo
+    mov rsi, rsp
+    pb_write_varint rsi, SpBarInfo.sp_cur, sp_cur
+    pb_write_varint rsi, SpBarInfo.sp_need, sp_need
+    mov r8, rsi
+    sub r8, rsp ; SpBarInfo buffer length
+    sub rsp, 64 ; BattleAvatar
+    mov rsi, rsp
+    pb_write_varint rsi, BattleAvatar.id, id
+    pb_write_varint rsi, BattleAvatar.level, level
+    pb_write_varint rsi, BattleAvatar.rank, rank
+    pb_write_varint rsi, BattleAvatar.promotion, promotion
+    pb_write_varint rsi, BattleAvatar.hp, hp
+    pb_write_varint rsi, BattleAvatar.avatar_type, avatar_type
+    mov r9, rsp
+    add r9, 64 ; SpBarInfo
+    pb_write_bytes rsi, BattleAvatar.sp_bar, r9, r8
+    mov r9, rsp
+    mov r8, rsi
+    sub r8, rsp ; BattleAvatar buffer length
+    mov rsi, r11 ; SceneBattleInfo buffer
+    pb_write_bytes rsi, SceneBattleInfo.battle_avatar_list, r9, r8
+    mov r11, rsi
+    add rsp, 32+64 ; deallocate Avatar and SpBarInfo buffers
+  }
+
+  encode_battle_avatar 1415, 80, 6, 6, 10000, 10000, 10000, AVATAR_FORMAL_TYPE
+  encode_battle_avatar 1401, 80, 6, 6, 10000, 10000, 10000, AVATAR_FORMAL_TYPE
+  encode_battle_avatar 1005, 80, 6, 6, 10000, 10000, 10000, AVATAR_FORMAL_TYPE
+  encode_battle_avatar 1003, 80, 6, 6, 10000, 10000, 10000, AVATAR_FORMAL_TYPE
+
   pb_write_varint rsi, SceneBattleInfo.battle_id, 1
   pb_write_varint rsi, SceneBattleInfo.stage_id, 201012311
   call get_timestamp_ms
@@ -613,7 +616,7 @@ end repeat
   pb_write_varint rsi, SceneBattleInfo.logic_random_seed, r9
   mov r14, rsi
   sub r14, rsp
-  mov r12, rsp ; SceneBattleInfo buffer length
+  mov r12, rsp
 
   mov r13, [send_buffer_ptr]
   add r13, PACKET_BODY_SIZE_OFFSET+4 ; encode directly to the send_buffer at the right offset
@@ -623,7 +626,7 @@ end repeat
   pb_write_varint rsi, StartCocoonStageScRsp.prop_entity_id, 1337
   mov r15, rsi
 
-  add rsp, (128+64+32+32+32) ; deallocate all on-stack buffers
+  add rsp, (128+32+32) ; deallocate all on-stack buffers
 
   sub r15, r13 ; cur - begin
   mov r8, r15 ; r8 = body_len
